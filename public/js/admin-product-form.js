@@ -12,7 +12,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     const productForm = document.getElementById('product-form');
-    // Sửa lại ID cho đúng với tên trường trong Model và EJS
     const categorySelect = document.getElementById('danh_muc_id'); 
     const priceInput = document.getElementById('gia_bia');
 
@@ -52,9 +51,9 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-    // ====================================================================
+   
     // TÍCH HỢP CLEAVE.JS ĐỂ ĐỊNH DẠNG Ô NHẬP GIÁ
-    // ====================================================================
+   
     let cleaveInstance = null;
     if (priceInput) {
         cleaveInstance = new Cleave(priceInput, {
@@ -64,9 +63,9 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // ====================================================================
+  
     // LOGIC XỬ LÝ DANH MỤC
-    // ====================================================================
+    
     async function fetchAllCategories() {
         try {
             const response = await fetch('/api/categories', {
@@ -96,9 +95,9 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // ====================================================================
+    
     // LOGIC XỬ LÝ FORM (THÊM MỚI / CẬP NHẬT)
-    // ====================================================================
+    
     const pathParts = window.location.pathname.split('/');
     const isEditMode = pathParts.includes('edit');
     const productId = isEditMode ? pathParts[pathParts.length - 1] : null;
@@ -182,9 +181,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // ====================================================================
+    
     // KHỞI CHẠY CÁC HÀM CẦN THIẾT KHI TẢI TRANG
-    // ====================================================================
+   
     async function initializePage() {
         if (isEditMode) {
             await loadProductDataForEditing();

@@ -36,7 +36,7 @@ const sendOrderConfirmationEmail = async (toEmail, orderDetails) => {
     const mailOptions = {
         from: `"Book Zone " <${process.env.EMAIL_USER}>`, // Tên người gửi và địa chỉ email
         to: toEmail, // Địa chỉ email của người nhận
-        subject: `Xác nhận đơn hàng #${orderDetails.id}`, // Tiêu đề của email
+        subject: `Xác nhận đơn hàng #BZ111${orderDetails.id}`, // Tiêu đề của email
         
         // Nội dung email, có thể viết dưới dạng HTML để có định dạng đẹp hơn.
          html: `
@@ -55,7 +55,7 @@ const sendOrderConfirmationEmail = async (toEmail, orderDetails) => {
     try {
         // 3. Gửi email bằng phương thức sendMail của transporter
         await transporter.sendMail(mailOptions);
-        console.log(`✅ Email xác nhận đơn hàng #${orderDetails.id} đã được gửi thành công tới ${toEmail}`);
+        console.log(`✅ Email xác nhận đơn hàng #BZ111${orderDetails.id} đã được gửi thành công tới ${toEmail}`);
     } catch (error) {
         // Bắt lỗi nếu quá trình gửi email thất bại và ghi log ra console.
         // Việc này giúp chúng ta biết được lỗi nhưng không làm dừng ứng dụng.

@@ -1,7 +1,5 @@
 document.addEventListener('DOMContentLoaded', function() {
-    // ====================================================================
     // ======================= KHAI BÁO BIẾN DOM ========================
-    // ====================================================================
     const token = localStorage.getItem('token');
     if (!token) {
         alert('Vui lòng đăng nhập lại.');
@@ -24,10 +22,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const limit = 10;
     let allRoles = []; // Cache để lưu danh sách vai trò
 
-    // ====================================================================
+  
     // ====================== CÁC HÀM RENDER (VIEW) =======================
-    // ====================================================================
-
     const renderTable = (users) => {
         tableBody.innerHTML = '';
         if (!users || users.length === 0) {
@@ -64,9 +60,7 @@ document.addEventListener('DOMContentLoaded', function() {
         paginationContainer.innerHTML += `<li class="page-item ${currentPage === totalPages ? 'disabled' : ''}"><a class="page-link" href="#" data-page="${currentPage + 1}">Sau</a></li>`;
     };
 
-    // ====================================================================
     // ==================== CÁC HÀM TẢI DỮ LIỆU (API) ====================
-    // ====================================================================
 
     const loadUsers = async (page = 1) => {
         currentPage = page;
@@ -117,9 +111,7 @@ document.addEventListener('DOMContentLoaded', function() {
         roleSelect.disabled = false;
     };
 
-    // ====================================================================
     // =================== CÁC HÀM XỬ LÝ MODAL & FORM ===================
-    // ====================================================================
 
     const resetForm = () => {
         userForm.reset();
@@ -178,9 +170,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 
-    // ====================================================================
+   
     // ==================== GẮN CÁC EVENT LISTENER ======================
-    // ====================================================================
+   
 
     document.querySelector('[data-bs-target="#userModal"]').addEventListener('click', openCreateModal);
 
@@ -250,8 +242,6 @@ document.addEventListener('DOMContentLoaded', function() {
         if (newPassword) {
             data.mat_khau = newPassword;
         }
-        // Tên đăng nhập và email thường không cho sửa, nhưng nếu bạn cho phép
-        // thì cần thêm logic lấy giá trị của chúng ở đây.
     }
 
         const url = isEditMode ? `/api/users/${id}` : '/api/users';
@@ -279,8 +269,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // ====================================================================
+  
     // ============================ KHỞI CHẠY ============================
-    // ====================================================================
     loadUsers();
 });

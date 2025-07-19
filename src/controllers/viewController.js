@@ -38,7 +38,6 @@ const renderProductListPage = async (req, res) => {
             // Lấy tất cả danh mục cho sidebar
             axios.get(`${apiBaseUrl}/categories`),
             // Lấy tất cả nhà xuất bản cho bộ lọc
-           // axios.get(`${apiBaseUrl}/products/publishers`) // Giả định bạn có API này
         ]);
 
         const { products, pagination } = productsResponse.data;
@@ -158,7 +157,7 @@ const renderOrderDetailPage = async (request, response) => {
         // Logic xác thực sẽ được xử lý phía client JS,
         // nơi nó gửi token để gọi API. Server chỉ render trang.
         response.render('pages/order-detail', {
-            title: `Chi tiết đơn hàng #${id}`,
+            title: `Chi tiết đơn hàng ${id}`,
             orderId: id, // Truyền ID đơn hàng vào trang EJS
         });
     } catch (error) {

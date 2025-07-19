@@ -65,7 +65,7 @@ Review.associate = (models) => {
     // Đây chính là dòng code sửa lỗi "User is not associated to Review!"
     Review.belongsTo(models.User, {
         foreignKey: 'user_id',
-        as: 'User' // Đặt bí danh là 'User' (viết hoa) để khớp với controller
+        as: 'User'
     });
 
     // Quan hệ: Một Review thuộc về một Product

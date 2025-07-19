@@ -5,6 +5,9 @@ npm install -D nodemon sequelize-cli
 npm install ejs
 npm install cookie-parser
 
+
+
+
 B2: setup pgAdmin4
 DB_USER=cuduc
 DB_PASSWORD=cuduc

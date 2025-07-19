@@ -50,7 +50,34 @@ const getDashboardStats = async (req, res) => {
         });
 
         // --- BƯỚC 3: LẤY CÁC DỮ LIỆU THỐNG KÊ KHÁC ---
-        
+         const costByMonth = await db.Receipt.findAll({
+            attributes: [
+                [sequelize.fn('EXTRACT', sequelize.literal('YEAR FROM "createdAt"')), 'year'],
+                [sequelize.fn('EXTRACT', sequelize.literal('MONTH FROM "createdAt"')), 'month'],
+                [sequelize.fn('SUM', sequelize.col('tong_tien_phieu_nhap')), 'totalCost']
+            ],
+            where: dateRangeWhere, // Dùng lại điều kiện thời gian
+            group: ['year', 'month'],
+            raw: true
+        });
+
+         const totalRevenue = await db.Order.sum('tong_thanh_toan', {
+            where: {
+                trang_thai_don_hang: completedStatus,
+                ...dateRangeWhere
+            }
+        });
+
+         const totalCost = await db.Receipt.sum('tong_tien_phieu_nhap', {
+            where: dateRangeWhere
+        });
+        const profit = (totalRevenue || 0) - (totalCost || 0);
+
+        const totalStats = {
+            totalRevenue: totalRevenue || 0,
+            totalCost: totalCost || 0,
+            profit: profit
+        };
         // Tạo điều kiện WHERE cho các câu lệnh JOIN phức tạp
         const joinWhereCondition = {
             trang_thai_don_hang: completedStatus,
@@ -99,8 +126,10 @@ const getDashboardStats = async (req, res) => {
         // --- BƯỚC 4: GỬI PHẢN HỒI VỀ CHO CLIENT ---
         res.status(200).json({
             revenueByMonth,
+            costByMonth,
             topSellingProducts,
-            topCustomers
+            topCustomers,
+            totalStats  
         });
 
     } catch (error) {

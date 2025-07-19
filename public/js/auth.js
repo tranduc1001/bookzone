@@ -89,9 +89,9 @@ if (loginForm) {
                 }).then(() => {
                     // **Chuyển hướng dựa trên vai trò**
                     if (data.role_id === 1) {
-                        window.location.href = '/admin'; // Admin vào trang quản trị
+                        window.location.href = '/admin';
                     } else {
-                        window.location.href = '/'; // User thường về trang chủ
+                        window.location.href = '/'; 
                     }
                 });
 

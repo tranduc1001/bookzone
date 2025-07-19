@@ -1,8 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
 
-    // ====================================================================
+  
     // ===================== KHAI BÁO CÁC BIẾN DOM =======================
-    // ====================================================================
     const addReceiptModalEl = document.getElementById('addReceiptModal');
 
     // Nếu không có Modal trên trang này, không cần chạy code còn lại
@@ -23,10 +22,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const token = localStorage.getItem('token'); // Lấy token để xác thực API
 
 
-    // ====================================================================
+    
     // ======================== CÁC HÀM TIỆN ÍCH ==========================
-    // ====================================================================
-
     // Hàm định dạng số sang tiền tệ Việt Nam
     const formatCurrency = (amount) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
 
@@ -61,7 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
     
-    // Hàm cập nhật thành tiền cho một dòng sản phẩm (đã nâng cấp)
+    // Hàm cập nhật thành tiền cho một dòng sản phẩm 
     const updateRowTotal = (row) => {
         const giaNhapStr = row.querySelector('.gia-nhap').value;
         const giaNhap = parseFormattedNumber(giaNhapStr);
@@ -117,10 +114,8 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
 
-    // ====================================================================
+   
     // ======================= GẮN CÁC SỰ KIỆN ===========================
-    // ====================================================================
-
     // Sự kiện khi Modal được mở ra: Reset lại form
     addReceiptModalEl.addEventListener('show.bs.modal', () => {
         receiptForm.reset();

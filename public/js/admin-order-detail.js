@@ -4,7 +4,7 @@ const token = localStorage.getItem('token');
 
 // Lắng nghe sự kiện submit của form
 document.getElementById('updateStatusForm').addEventListener('submit', async (e) => {
-    e.preventDefault(); // Ngăn form submit theo cách truyền thống
+    e.preventDefault();
 
     // Lấy ID đơn hàng từ URL của trang
     const orderId = window.location.pathname.split('/').pop();
@@ -13,7 +13,7 @@ document.getElementById('updateStatusForm').addEventListener('submit', async (e)
 
     Swal.fire({
         title: 'Xác nhận cập nhật',
-        text: `Bạn có chắc muốn đổi trạng thái đơn hàng #${orderId}"?`,
+        text: `Bạn có chắc muốn đổi trạng thái đơn hàng BZ111${orderId}"?`,
         icon: 'question',
         showCancelButton: true,
         confirmButtonColor: '#3085d6',

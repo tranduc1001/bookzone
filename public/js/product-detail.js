@@ -23,7 +23,15 @@ document.addEventListener('DOMContentLoaded', function () {
                 quantityInput.value = currentValue + 1;
             } else {
                 // Có thể thêm thông báo cho người dùng ở đây
-                alert('Số lượng đã đạt tối đa trong kho.');
+                Swal.fire({
+                icon: 'info',
+                title: 'Thông báo',
+                text: `Chỉ còn ${maxQuantity} sản phẩm trong kho.`,
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 2000
+            });
             }
         });
     }

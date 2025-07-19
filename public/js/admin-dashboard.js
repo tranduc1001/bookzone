@@ -1,23 +1,44 @@
+/**
+ * File: /public/js/admin-dashboard.js
+ * Chức năng: Lấy dữ liệu thống kê từ API và hiển thị lên trang Dashboard,
+ * bao gồm các thẻ tổng quan, biểu đồ lợi nhuận, và các bảng xếp hạng.
+ */
+
 document.addEventListener('DOMContentLoaded', () => {
-    // === LẤY CÁC ELEMENT TỪ DOM ===
+
+    // ==========================================================
+    // === BƯỚC 1: KIỂM TRA TOKEN & LẤY CÁC ELEMENT TỪ DOM ===
+    // ==========================================================
     const token = localStorage.getItem('token');
     if (!token) {
         alert('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
-        window.location.href = '/login'; // Chuyển hướng nếu không có token
+        window.location.href = '/login';
         return;
     }
 
+    // Bộ lọc
     const startDateInput = document.getElementById('start-date');
     const endDateInput = document.getElementById('end-date');
     const filterBtn = document.getElementById('filter-btn');
+    
+    // Thẻ thống kê tổng quan
+    const totalRevenueCard = document.getElementById('total-revenue-card');
+    const totalCostCard = document.getElementById('total-cost-card');
+    const profitCard = document.getElementById('profit-card');
+
+    // Biểu đồ
     const chartTitleEl = document.getElementById('chart-title');
+    let revenueChartInstance = null; // Biến để lưu trữ instance của biểu đồ, giúp hủy và vẽ lại
+
+    // Bảng xếp hạng
     const topProductsBody = document.getElementById('top-products-body');
     const topCustomersBody = document.getElementById('top-customers-body');
 
-    // Biến để lưu trữ instance của biểu đồ
-    let revenueChartInstance = null;
-
-    // === CÁC HÀM HELPER ===
+    // ==========================================================
+    // === BƯỚC 2: CÁC HÀM TIỆN ÍCH (HELPER FUNCTIONS) ===
+    // ==========================================================
+    
+    // Hàm định dạng số sang tiền tệ Việt Nam
     const formatCurrency = (amount) => {
         if (typeof amount !== 'number' && typeof amount !== 'string') return '0 ₫';
         const numberAmount = parseFloat(amount);
@@ -25,16 +46,22 @@ document.addEventListener('DOMContentLoaded', () => {
         return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(numberAmount);
     };
 
+    // Hàm hiển thị trạng thái đang tải
     const showLoadingState = () => {
         if (filterBtn) {
             filterBtn.disabled = true;
             filterBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Đang tải...';
         }
+        // Hiển thị 'Đang tải...' cho các thẻ thống kê và bảng
+        if (totalRevenueCard) totalRevenueCard.textContent = 'Đang tải...';
+        if (totalCostCard) totalCostCard.textContent = 'Đang tải...';
+        if (profitCard) profitCard.textContent = 'Đang tải...';
         const loadingRow = '<tr><td colspan="3" class="text-center">Đang tải...</td></tr>';
         if (topProductsBody) topProductsBody.innerHTML = loadingRow;
         if (topCustomersBody) topCustomersBody.innerHTML = loadingRow;
     };
 
+    // Hàm ẩn trạng thái đang tải
     const hideLoadingState = () => {
         if (filterBtn) {
             filterBtn.disabled = false;
@@ -42,71 +69,98 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // === CÁC HÀM RENDER GIAO DIỆN ===
-    const renderRevenueChart = (revenueData, startDateStr, endDateStr) => {
-        if (revenueChartInstance) {
-            revenueChartInstance.destroy();
-        }
 
+    // ==========================================================
+    // === BƯỚC 3: CÁC HÀM RENDER GIAO DIỆN ===
+    // ==========================================================
+
+    /**
+     * Cập nhật nội dung cho 3 thẻ thống kê tổng quan.
+     * @param {object} stats - Đối tượng chứa totalRevenue, totalCost, profit.
+     */
+    const renderStatCards = (stats) => {
+        if (totalRevenueCard) totalRevenueCard.textContent = formatCurrency(stats.totalRevenue);
+        if (totalCostCard) totalCostCard.textContent = formatCurrency(stats.totalCost);
+        if (profitCard) {
+            profitCard.textContent = formatCurrency(stats.profit);
+            // Thay đổi màu chữ của Lợi nhuận tùy theo giá trị
+            profitCard.classList.remove('text-danger', 'text-success');
+            profitCard.classList.add(stats.profit >= 0 ? 'text-success' : 'text-danger');
+        }
+    };
+
+    /**
+     * Vẽ biểu đồ cột cho Doanh thu, Chi phí, và Lợi nhuận.
+     * @param {Array} revenueData - Dữ liệu doanh thu theo tháng từ API.
+     * @param {Array} costData - Dữ liệu chi phí theo tháng từ API.
+     * @param {string} startDateStr - Ngày bắt đầu để tạo nhãn.
+     * @param {string} endDateStr - Ngày kết thúc để tạo nhãn.
+     */
+    const renderProfitChart = (revenueData, costData, startDateStr, endDateStr) => {
+        if (revenueChartInstance) {
+            revenueChartInstance.destroy(); // Hủy biểu đồ cũ trước khi vẽ mới
+        }
         const canvas = document.getElementById('revenue-chart');
         const ctx = canvas?.getContext('2d');
         if (!ctx) return;
 
-        if (chartTitleEl) chartTitleEl.textContent = "Biểu đồ doanh thu";
+        if (chartTitleEl) chartTitleEl.textContent = "Biểu đồ Kinh doanh (Doanh thu - Chi phí - Lợi nhuận)";
 
-        if (!revenueData || revenueData.length === 0) {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.font = "16px Arial";
-            ctx.fillStyle = "#858796";
-            ctx.textAlign = "center";
-            ctx.fillText("Không có dữ liệu doanh thu trong khoảng thời gian này.", canvas.width / 2, canvas.height / 2);
-            return;
+        // Gộp dữ liệu doanh thu và chi phí vào một Map để dễ dàng tra cứu
+        const dataMap = new Map();
+        
+        revenueData.forEach(item => {
+            const key = `${item.year}-${item.month}`;
+            const entry = dataMap.get(key) || { revenue: 0, cost: 0 };
+            entry.revenue = parseFloat(item.total);
+            dataMap.set(key, entry);
+        });
+        costData.forEach(item => {
+            const key = `${item.year}-${item.month}`;
+            const entry = dataMap.get(key) || { revenue: 0, cost: 0 };
+            entry.cost = parseFloat(item.totalCost);
+            dataMap.set(key, entry);
+        });
+
+        const labels = [];
+        const revenueValues = [];
+        const costValues = [];
+        const profitValues = [];
+
+        // Tạo nhãn (labels) và dữ liệu (data) cho từng tháng trong khoảng thời gian đã chọn
+        let currentDate = new Date(startDateStr);
+        const endDate = new Date(endDateStr);
+        // Lặp qua từng tháng để đảm bảo tất cả các tháng đều xuất hiện trên biểu đồ
+        while (currentDate <= endDate) {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth() + 1;
+            const key = `${year}-${month}`;
+            labels.push(`T${month}/${year}`);
+            
+            const monthData = dataMap.get(key) || { revenue: 0, cost: 0 };
+            const profit = monthData.revenue - monthData.cost;
+
+            revenueValues.push(monthData.revenue);
+            costValues.push(monthData.cost);
+            profitValues.push(profit);
+            
+            // Di chuyển đến tháng tiếp theo
+            currentDate.setMonth(currentDate.getMonth() + 1);
         }
 
-         const startDate = new Date(startDateStr);
-    const endDate = new Date(endDateStr);
-
-    const labels = [];
-    const data = [];
-    const monthlyDataMap = new Map(); // Dùng Map để truy cập nhanh
-
-    // Đưa dữ liệu từ API vào Map với key là "năm-tháng"
-    revenueData.forEach(item => {
-        const key = `${item.year}-${item.month}`;
-        monthlyDataMap.set(key, parseFloat(item.total));
-    });
-
-    // Lặp qua từng tháng trong khoảng thời gian đã chọn
-    let currentDate = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
-
-    while (currentDate <= endDate) {
-        const year = currentDate.getFullYear();
-        const month = currentDate.getMonth() + 1; // getMonth() trả về 0-11
-        const key = `${year}-${month}`;
-
-        // Thêm nhãn "Tháng X/YYYY" vào mảng labels
-        labels.push(`Tháng ${month}/${year}`);
-
-        // Lấy dữ liệu từ Map, nếu không có thì mặc định là 0
-        data.push(monthlyDataMap.get(key) || 0);
-        
-        // Chuyển sang tháng tiếp theo
-        currentDate.setMonth(currentDate.getMonth() + 1);
-    }
-        
+        // Vẽ biểu đồ bằng Chart.js
         revenueChartInstance = new Chart(ctx, {
             type: 'bar',
             data: {
                 labels: labels,
-                datasets: [{
-                    label: "Doanh thu",
-                    data: data,
-                    backgroundColor: 'rgba(78, 115, 223, 0.8)',
-                    borderColor: 'rgba(78, 115, 223, 1)',
-                    borderWidth: 1
-                }]
+                datasets: [
+                    { label: "Doanh thu", data: revenueValues, backgroundColor: '#4e73df' },
+                    { label: "Chi phí", data: costValues, backgroundColor: '#e74a3b' },
+                    { label: "Lợi nhuận", data: profitValues, backgroundColor: '#1cc88a' }
+                ]
             },
             options: {
+                responsive: true,
                 maintainAspectRatio: false,
                 scales: {
                     y: {
@@ -115,18 +169,21 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 },
                 plugins: {
-                    legend: { display: false },
+                    legend: { display: true, position: 'top' },
                     tooltip: {
                         callbacks: {
-                            title: (tooltipItems) => `Doanh thu ${tooltipItems[0].label}`,
-                            label: (context) => formatCurrency(context.parsed.y)
+                            label: (context) => `${context.dataset.label}: ${formatCurrency(context.parsed.y)}`
                         }
                     }
                 }
             }
         });
     };
-    
+
+    /**
+     * Render bảng Top 5 sản phẩm bán chạy.
+     * @param {Array} products - Dữ liệu từ API.
+     */
     const renderTopProducts = (products) => {
         if (!topProductsBody) return;
         topProductsBody.innerHTML = '';
@@ -146,6 +203,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
+    /**
+     * Render bảng Top 5 khách hàng tiềm năng.
+     * @param {Array} customers - Dữ liệu từ API.
+     */
     const renderTopCustomers = (customers) => {
         if (!topCustomersBody) return;
         topCustomersBody.innerHTML = '';
@@ -165,7 +226,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
-    // === HÀM CHÍNH ===
+
+    // ==========================================================
+    // === BƯỚC 4: HÀM CHÍNH GỌI API ===
+    // ==========================================================
+
     const fetchAndRenderDashboard = async (startDate, endDate) => {
         showLoadingState();
         
@@ -179,7 +244,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
             if (!response.ok) throw new Error(data.message || 'Lỗi không xác định.');
 
-            renderRevenueChart(data.revenueByMonth, startDate, endDate);
+            // Gọi các hàm render với dữ liệu nhận được
+            renderStatCards(data.totalStats);
+            renderProfitChart(data.revenueByMonth, data.costByMonth, startDate, endDate);
             renderTopProducts(data.topSellingProducts);
             renderTopCustomers(data.topCustomers);
 
@@ -191,7 +258,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // === EVENT LISTENERS & KHỞI TẠO ===
+
+    // ==========================================================
+    // === BƯỚC 5: GẮN EVENT LISTENERS & KHỞI TẠO ===
+    // ==========================================================
+
     if (filterBtn) {
         filterBtn.addEventListener('click', () => {
             const startDate = startDateInput.value;
@@ -218,6 +289,8 @@ document.addEventListener('DOMContentLoaded', () => {
         startDateInput.value = thirtyDaysAgo.toISOString().split('T')[0];
     }
     
-    // Tải dữ liệu lần đầu khi trang được mở
-    fetchAndRenderDashboard(startDateInput.value, endDateInput.value);
+    // Tải dữ liệu lần đầu tiên ngay khi trang được mở
+    if(startDateInput.value && endDateInput.value) {
+        fetchAndRenderDashboard(startDateInput.value, endDateInput.value);
+    }
 });

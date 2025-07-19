@@ -9,6 +9,11 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 
+function getOrderIdFromUrl() {
+        const pathParts = window.location.pathname.split('/');
+        return pathParts[pathParts.length - 1] || null;
+    }
+
 /**
  * Hàm chính: Lấy ID đơn hàng, gọi API, và điều phối việc hiển thị.
  */
@@ -58,7 +63,7 @@ async function fetchAndRenderOrderDetail() {
  */
 function renderOrderDetail(data) {
     // --- HIỂN THỊ THÔNG TIN CHUNG ---
-    setText('order-id-header', `Chi tiết đơn hàng #${data.id}`);
+    setText('order-id-header', `Chi tiết đơn hàng BZ111${data.id}`);
     setText('order-date', new Date(data.createdAt).toLocaleDateString('vi-VN'));
     
     // --- XỬ LÝ VÀ HIỂN THỊ CÁC BADGE TRẠNG THÁI ---

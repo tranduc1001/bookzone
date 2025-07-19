@@ -19,9 +19,9 @@ document.addEventListener('DOMContentLoaded', function() {
             const oldOrder = form.querySelector('input[name="order"]');
             if (oldOrder) oldOrder.remove();
 
-            // ==========================================================
+           
             // ================= SỬA LỖI LOGIC TÁCH CHUỖI ================
-            // ==========================================================
+           
             const selectedValue = this.value; // Ví dụ: "gia_bia_DESC"
 
             // Tìm vị trí của dấu gạch dưới cuối cùng
@@ -38,23 +38,22 @@ document.addEventListener('DOMContentLoaded', function() {
             const sortByInput = document.createElement('input');
             sortByInput.type = 'hidden';
             sortByInput.name = 'sortBy';
-            sortByInput.value = sortByValue; // Sẽ là 'gia_bia'
+            sortByInput.value = sortByValue; 
             form.appendChild(sortByInput);
 
             // Tạo input ẩn mới cho order
             const orderInput = document.createElement('input');
             orderInput.type = 'hidden';
             orderInput.name = 'order';
-            orderInput.value = orderValue; // Sẽ là 'DESC'
+            orderInput.value = orderValue; 
             form.appendChild(orderInput);
 
             form.submit();
         });
     }
 
-    // ====================================================================
+    
     // LOGIC XỬ LÝ NÚT XÓA SẢN PHẨM
-    // ====================================================================
     const productTableBody = document.getElementById('products-table-body');
     if (productTableBody) {
         productTableBody.addEventListener('click', async function(event) {

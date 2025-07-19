@@ -30,14 +30,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const shippingElement = document.getElementById('shipping');
     const totalElement = document.getElementById('total');
 
-      // === PHẦN LOGIC XỬ LÝ ĐỊA CHỈ 3 CẤP (TỈNH - HUYỆN - XÃ) ===
     const apiHost = "/api/provinces";
+
+    let currentShippingFee = 0;
 
     // Hàm gọi API
      async function callApi(endpoint) {
         try {
             // endpoint bây giờ sẽ là 'provinces', 'districts/1', 'wards/1'
-            const response = await fetch(`/api/${endpoint}`); // <<< Sửa lại URL ở đây
+            const response = await fetch(`/api/${endpoint}`); 
             
             // Thêm kiểm tra nếu response không OK (ví dụ 404, 500) thì báo lỗi ngay
             if (!response.ok) {
@@ -73,15 +74,52 @@ document.addEventListener('DOMContentLoaded', () => {
         districtSelect.disabled = false;
         wardSelect.disabled = true;
         wardSelect.innerHTML = '<option value="" selected disabled>Chọn Phường / Xã</option>';
-        callApi(`provinces/districts/${provinceSelect.value}`).then(data => renderData(data, districtSelect)); // <<< Sửa lại endpoint
+        callApi(`provinces/districts/${provinceSelect.value}`).then(data => renderData(data, districtSelect)); 
+        calculateAndSetShippingFee();
+        
     });
 
     // Bắt sự kiện khi chọn Quận/Huyện
     districtSelect.addEventListener('change', () => {
         wardSelect.disabled = false;
-        callApi(`provinces/wards/${districtSelect.value}`).then(data => renderData(data, wardSelect)); // <<< Sửa lại endpoint
+        callApi(`provinces/wards/${districtSelect.value}`).then(data => renderData(data, wardSelect));
+        calculateAndSetShippingFee();
     });
 
+    wardSelect.addEventListener('change', calculateAndSetShippingFee);
+
+     // HÀM ĐỂ TÍNH VÀ CẬP NHẬT PHÍ SHIP -->>
+    async function calculateAndSetShippingFee() {
+        // Lấy tên đầy đủ của tỉnh và huyện, không phải ID
+        const provinceText = provinceSelect.options[provinceSelect.selectedIndex]?.text;
+        const districtText = districtSelect.options[districtSelect.selectedIndex]?.text;
+
+        // Nếu chưa chọn tỉnh, phí ship là 0
+        if (!provinceText || provinceText === "Chọn...") {
+            currentShippingFee = 0;
+            updateSummaryUI(); // Cập nhật lại giao diện
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/orders/calculate-shipping', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ province: provinceText, district: districtText })
+            });
+            if (!response.ok) throw new Error('Lỗi từ server tính phí.');
+            
+            const data = await response.json();
+            currentShippingFee = data.shippingFee;
+            
+        } catch (error) {
+            console.error("Lỗi API tính phí ship:", error);
+            currentShippingFee = 30000; // Quay về mức phí mặc định nếu có lỗi
+        } finally {
+            // Dù thành công hay thất bại, luôn cập nhật lại giao diện
+            updateSummaryUI();
+        }
+    }
     /**
      * Tự động điền thông tin người dùng nếu đã có trong profile
      */
@@ -125,8 +163,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 return;
             }
-            const discountAmount = parseFloat(sessionStorage.getItem('discountAmountApplied')) || 0;
-            renderSummary(cart, discountAmount);
+            renderSummaryItems(cart);
+            updateSummaryUI(); 
             
         } catch (error) {
             console.error('Lỗi:', error);
@@ -137,10 +175,10 @@ document.addEventListener('DOMContentLoaded', () => {
     /**
      * Render phần tóm tắt đơn hàng
      */
-    function renderSummary(cart, discountAmount = 0) {
-        orderSummaryContainer.innerHTML = ''; // Xóa chữ "Đang tải..."
+    function renderSummaryItems(cart, discountAmount = 0) {
+        orderSummaryContainer.innerHTML = ''; 
         let subtotal = 0;
-        const shipping = 30000;
+        
 
         cart.items.forEach(item => {
             const itemTotal = item.so_luong * item.product.gia_bia;
@@ -156,22 +194,28 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         subtotalElement.textContent = `${subtotal.toLocaleString('vi-VN')}đ`;
-        shippingElement.textContent = `${shipping.toLocaleString('vi-VN')}đ`;
+    }
+   function updateSummaryUI() {
+        const subtotal = parseFloat(subtotalElement.textContent.replace(/[^0-9]/g, '')) || 0;
+        const discountAmount = parseFloat(sessionStorage.getItem('discountAmountApplied')) || 0;
+
+        // Cập nhật phí ship trên UI
+        shippingElement.textContent = `${currentShippingFee.toLocaleString('vi-VN')}đ`;
 
         // Hiển thị dòng giảm giá nếu có
         const discountRowCheckout = document.getElementById('discount-row-checkout');
         const discountAmountCheckout = document.getElementById('discount-amount-checkout');
-       if (discountAmount > 0) {
-        discountAmountCheckout.textContent = `- ${discountAmount.toLocaleString('vi-VN')}đ`;
-        discountRowCheckout.style.display = 'flex';
-    } else {
-        discountRowCheckout.style.display = 'none';
-    }
+        if (discountAmount > 0) {
+            discountAmountCheckout.textContent = `- ${discountAmount.toLocaleString('vi-VN')}đ`;
+            discountRowCheckout.style.display = 'flex';
+        } else {
+            discountRowCheckout.style.display = 'none';
+        }
 
-    // <<< TÍNH LẠI TỔNG CỘNG CUỐI CÙNG >>>
-    const finalTotal = subtotal + shipping - discountAmount;
-    totalElement.textContent = `${finalTotal.toLocaleString('vi-VN')}đ`;
-}
+        // Tính lại tổng cộng cuối cùng
+        const finalTotal = subtotal - discountAmount + currentShippingFee;
+        totalElement.textContent = `${finalTotal.toLocaleString('vi-VN')}đ`;
+    }
     /**
      * Lắng nghe sự kiện submit form thanh toán
      */
@@ -218,7 +262,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     email_nguoi_nhan,
                     ghi_chu_khach_hang,
                     phuong_thuc_thanh_toan,  
-                    ma_khuyen_mai
+                    ma_khuyen_mai,
+                    phi_van_chuyen: currentShippingFee 
                 })
             });
 

@@ -8,7 +8,8 @@ const {
     getMyOrders,
     getOrderById,
     updateOrderStatus,
-    getAllOrders // Đổi tên getOrdersForAdmin thành getAllOrders cho khớp
+    getAllOrders,
+    getShippingFee 
 } = require('../controllers/orderController');
 const { protect, admin } = require('../middlewares/authMiddleware');
 
@@ -25,10 +26,8 @@ router.get('/myorders', protect, getMyOrders);
 router.route('/')
     .get(protect, admin, getAllOrders)  // GET /api/orders (Admin)
     .post(protect, createOrder);
-
-// ==========================================================
-// ============= CÁC ROUTE ĐỘNG (VỚI :id) Ở DƯỚI =============
-// ==========================================================
+// Route để tính phí vận chuyển
+router.post('/calculate-shipping', getShippingFee);
 
 // GET /api/orders/:id -> Lấy chi tiết một đơn hàng theo ID
 router.get('/:id', protect, getOrderById);

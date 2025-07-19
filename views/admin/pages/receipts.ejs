@@ -40,7 +40,7 @@
                         <% receipts.forEach(receipt => { %>
                             <tr>
                                 <td>#<%= receipt.id %></td>
-                                <!-- Sửa lại để hiển thị tên NCC từ phiếu nhập -->
+                               
                                 <td><%= receipt.ten_nha_cung_cap %></td>
                                 <td><%= receipt.creator ? receipt.creator.ho_ten : 'Không rõ' %></td>
                                 <td><%= new Date(receipt.createdAt).toLocaleDateString('vi-VN') %></td>

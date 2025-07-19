@@ -1,11 +1,10 @@
-// File: /public/js/admin-auth.js (Phiên bản đã sửa và tối ưu)
+// File: /public/js/admin-auth.js 
 
 // Chờ cho toàn bộ cây DOM được tải xong rồi mới thực thi
 document.addEventListener('DOMContentLoaded', () => {
 
-    // ====================================================================
     // PHẦN 1: HIỂN THỊ THÔNG TIN ADMIN VÀ XỬ LÝ ĐĂNG XUẤT
-    // ====================================================================
+   
 
     const adminNameEl = document.getElementById('admin-name');
     const logoutBtn = document.getElementById('logout-btn');

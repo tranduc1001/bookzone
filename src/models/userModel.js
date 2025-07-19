@@ -112,9 +112,7 @@ User.associate = (models) => {
     // Thêm các mối quan hệ khác ở đây nếu cần, ví dụ: User có nhiều Order
     User.hasMany(models.Order, {
         foreignKey: 'user_id',
-        as: 'orders',
-        onDelete: 'SET NULL', // <<== THÊM VÀO: Giữ lại Order khi User bị xóa
-        onUpdate: 'CASCADE'
+        as: 'orders'
     });
      // Quan hệ: User có nhiều Review
     User.hasMany(models.Review, {
@@ -122,6 +120,10 @@ User.associate = (models) => {
         as: 'reviews',
         onDelete: 'CASCADE', // <<== THÊM VÀO: Xóa tất cả review của user khi user bị xóa
         onUpdate: 'CASCADE'
+    });
+    User.hasOne(models.Cart, {
+        foreignKey: 'user_id',
+        as: 'cart'
     });
 };
 

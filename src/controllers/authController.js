@@ -4,7 +4,7 @@ const db = require('../models');
 const { User, Role } = require('../models');
 const { Op } = require('sequelize');
 const generateToken = require('../utils/generateToken');
-const crypto = require('crypto'); // <<< THÊM DÒNG NÀY
+const crypto = require('crypto');
 const { sendPasswordResetEmail } = require('../services/emailService'); 
 
 /**
@@ -42,7 +42,7 @@ const registerUser = async (req, res) => {
             ten_dang_nhap,
             email,
             mat_khau,
-            // role_id sẽ có giá trị mặc định là 2 (user) như đã định nghĩa trong model
+            
         });
 
         // 4. Nếu tạo thành công, trả về thông tin người dùng (không bao gồm mật khẩu) và token
@@ -83,7 +83,7 @@ const loginUser = async (req, res) => {
         });
 
         if (user && (await user.comparePassword(mat_khau))) {
-            const token = generateToken(user.id);
+            const token = generateToken(user.id, user.role_id);
 
             // Đặt token vào một httpOnly cookie
             res.cookie('token', token, {
@@ -136,7 +136,7 @@ const forgotPassword = async (req, res) => {
         const resetToken = user.getResetPasswordToken();
         await user.save(); // Lưu token đã hash và ngày hết hạn vào DB
 
-        // Tạo URL reset, ví dụ: http://localhost:8080/reset-password/abcdef123...
+        // Tạo URL reset, ví dụ: http://localhost:8080/reset-password/
         const resetUrl = `${req.protocol}://${req.get('host')}/reset-password/${resetToken}`;
 
         // Gửi email

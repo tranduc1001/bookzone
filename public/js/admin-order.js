@@ -1,4 +1,4 @@
-// File: /public/js/admin-order-list.js (PHIÊN BẢN HOÀN CHỈNH)
+// File: /public/js/admin-order.js (PHIÊN BẢN HOÀN CHỈNH)
 
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -52,7 +52,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 orders.forEach(order => {
                     const row = `
                         <tr>
-                            <td><strong>#${order.id}</strong></td> 
+                            <td><strong>BZ111${order.id}</strong></td> 
                             <td>${order.ten_nguoi_nhan || 'Khách vãng lai'}</td>
                             <td>${formatDate(order.createdAt)}</td>
                             <td class="text-end">${formatCurrency(order.tong_thanh_toan)}</td>

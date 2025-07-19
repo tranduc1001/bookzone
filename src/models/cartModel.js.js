@@ -32,14 +32,16 @@ Cart.associate = (models) => {
     // Quan hệ: Một Cart thuộc về một User
     Cart.belongsTo(models.User, {
         foreignKey: 'user_id',
-        as: 'user'
+        as: 'users',
+        onDelete: 'CASCADE'
     });
 
     // Quan hệ: Một Cart có nhiều CartItems
     // Đây chính là dòng code sửa lỗi "CartItem is not associated to Cart!"
     Cart.hasMany(models.CartItem, {
         foreignKey: 'cart_id',
-        as: 'items' // Đặt bí danh là 'items' để khớp với controller
+        as: 'items', // Đặt bí danh là 'items' để khớp với controller
+        onDelete: 'CASCADE'
     });
 };
 // Export model Cart để các file khác có thể sử dụng.

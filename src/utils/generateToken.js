@@ -7,7 +7,7 @@ const generateToken = (id, role_id) => {
     // payload là thông tin chúng ta muốn "đóng gói" vào token
     const payload = {
         id: id,
-        role_id: role_id, // <<< ĐÂY LÀ DÒNG QUAN TRỌNG NHẤT
+        role_id: role_id, 
     };
 
     // Tạo token với payload, khóa bí mật (secret key), và thời gian hết hạn
@@ -15,7 +15,7 @@ const generateToken = (id, role_id) => {
         payload,
         process.env.JWT_SECRET, // Lấy khóa bí mật từ file .env
         {
-            expiresIn: '30d', // Token sẽ hết hạn sau 30 ngày
+            expiresIn: '30d', 
         }
     );
 };

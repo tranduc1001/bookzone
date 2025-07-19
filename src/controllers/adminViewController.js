@@ -10,7 +10,6 @@ const { sequelize } = db;
  */
 const renderAdminDashboard = async (req, res) => {
     try {
-        // Trong tương lai, bạn có thể lấy các số liệu thống kê ở đây
         // const userCount = await db.User.count();
         // const orderCount = await db.Order.count();
         res.render('admin/pages/dashboard', {
@@ -109,13 +108,13 @@ const renderAdminProducts = async (req, res) => {
  */
 const renderProductFormPage = async (req, res) => {
     try {
-        // --- SỬA LỖI Ở ĐÂY: Lấy danh sách tất cả danh mục ---
+       // Lấy danh sách tất cả danh mục ---
         const categories = await db.Category.findAll({ order: [['ten_danh_muc', 'ASC']] });
 
         let product = null; // Khởi tạo sản phẩm là null (cho trường hợp thêm mới)
         let pageTitle = 'Thêm Sản phẩm mới';
 
-        // --- SỬA LỖI Ở ĐÂY: Xử lý trường hợp SỬA sản phẩm ---
+    
         // Nếu có ID trong URL, nghĩa là đang ở trang sửa
         if (req.params.id) {
             product = await db.Product.findByPk(req.params.id);
@@ -127,13 +126,12 @@ const renderProductFormPage = async (req, res) => {
             }
         }
         
-        // --- SỬA LỖI Ở ĐÂY: Truyền cả 'categories' và 'product' vào view ---
         res.render('admin/pages/product-form', {
             title: pageTitle,
             user: req.user,
             path: '/products',
-            categories: categories, // << BIẾN QUAN TRỌNG
-            product: product      // << BIẾN QUAN TRỌNG
+            categories: categories, 
+            product: product      
         });
 
     } catch (error) {
@@ -198,12 +196,12 @@ const renderAdminOrderDetailPage = async (req, res) => {
                     attributes: ['id', 'ho_ten', 'email', 'phone', 'dia_chi']
                 },
                 {
-                    model: db.OrderItem, // <<< DÙNG ĐÚNG MODEL OrderItem
-                    as: 'orderItems',  // <<< DÙNG ĐÚNG BÍ DANH orderItems
+                    model: db.OrderItem, 
+                    as: 'orderItems',  
                     include: [
                         {
                             model: db.Product,
-                            as: 'product' // Bí danh này đã đúng
+                            as: 'product'
                         }
                     ]
                 }
@@ -217,7 +215,7 @@ const renderAdminOrderDetailPage = async (req, res) => {
         }
 
         res.render('admin/pages/order-detail', {
-            title: `Admin - Chi tiết Đơn hàng #${order.id}`,
+            title: `Admin - Chi tiết Đơn hàng BZ111${order.id}`,
             user: req.user,
             path: '/orders',
             order: order
@@ -241,7 +239,7 @@ const renderAdminUsersPage = (req, res) => {
         res.render('admin/pages/users', {
             title: 'Quản lý Người dùng',
             user: req.user,
-            path: '/users' // Dùng để highlight sidebar
+            path: '/users' 
         });
     } catch (error) {
         console.error("Lỗi khi render trang Quản lý Người dùng:", error);
@@ -250,7 +248,7 @@ const renderAdminUsersPage = (req, res) => {
 };
 
 /**
- * @description Render trang danh sách Phiếu nhập cho Admin (THEO STYLE MỚI)
+ * @description Render trang danh sách Phiếu nhập cho Admin 
  * @route       GET /admin/receipts
  * @access      Private/Admin
  */
@@ -303,7 +301,7 @@ const renderReceiptsListPage = async (req, res) => {
 };
 
 /**
- * @description Render trang chi tiết Phiếu nhập cho Admin (THEO STYLE MỚI)
+ * @description Render trang chi tiết Phiếu nhập cho Admin 
  * @route       GET /admin/receipts/:id
  * @access      Private/Admin
  */

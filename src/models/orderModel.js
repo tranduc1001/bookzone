@@ -84,7 +84,7 @@ Order.associate = (models) => {
     Order.belongsTo(models.User, {
         foreignKey: 'user_id',
         as: 'user',
-        onDelete: 'SET NULL', // hoặc 'RESTRICT'
+        onDelete: 'SET NULL', // <<== THÊM VÀO: Giữ lại Order khi User bị xóa
         onUpdate: 'CASCADE'
     });
 

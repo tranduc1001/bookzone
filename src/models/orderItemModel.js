@@ -14,7 +14,7 @@ const OrderItem = sequelize.define('OrderItem', {
         type: DataTypes.BIGINT,
         allowNull: false,
         references: {
-            model: 'orders', // Tên bảng 'orders'
+            model: 'orders', 
             key: 'id'
         }
     },

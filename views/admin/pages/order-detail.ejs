@@ -2,7 +2,7 @@
 
 <%- include('../partials/header') %>
 
-<h1 class="mb-4">Chi tiết đơn hàng #<%= order.id %></h1>
+<h1 class="mb-4">Chi tiết đơn hàng BZ111<%= order.id %></h1>
 <button onclick="window.print()" class="btn btn-sm btn-outline-secondary">
             <i class="fas fa-print me-2"></i>In Phiếu
 </button>
@@ -56,7 +56,7 @@
             <div class="card-body">
                 <p><strong>Tên:</strong> <%= order.ten_nguoi_nhan %></p>
                 <p><strong>Email:</strong> <%= order.email_nguoi_nhan %></p>
-                <p><strong>Số điện thoại:</strong> <%= order.so_dt_nguoi_nhan %></p>
+                <p><strong>Số điện thoại:</strong> <%= order.sdt_nguoi_nhan %></p>
                 <p><strong>Địa chỉ giao hàng:</strong> <%= order.dia_chi_giao_hang %></p>
                 <p><strong>Ghi chú:</strong> <%= order.ghi_chu_khach_hang || '(Không có)' %></p>
             </div>
@@ -95,7 +95,7 @@
     <div class="card-body">
         <form id="updateStatusForm">
             <div class="mb-3">
-                <label for="orderStatus" class="form-label">Chọn trạng thái mới:</label>
+                <label for="orderStatus" class="form-label">Trạng thái hiện tại:</label>
                 <select class="form-select" id="orderStatus">
                     <!-- Logic hiển thị các option tùy theo trạng thái hiện tại -->
                     <% if (order.trang_thai_don_hang === 'pending') { %>

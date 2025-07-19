@@ -5,7 +5,16 @@ const { Op } = require('sequelize'); // Lấy sequelize và Op từ db object ch
 // Import service gửi email
 const { sendOrderConfirmationEmail, sendOutOfStockApologyEmail } = require('../services/emailService');
 const { createMomoPayment } = require('../services/momoService');
+const { calculateShippingFee } = require('../data/shipping');
 
+
+
+const getNumericOrderId = (keyword) => {
+    if (!keyword || typeof keyword !== 'string') return null;
+    const numericPart = keyword.toUpperCase().replace(/BZ111/g, '').trim();
+    const id = parseInt(numericPart, 10);
+    return !isNaN(id) ? id : null;
+};
 /**
  * @description     Tạo một đơn hàng mới từ giỏ hàng của người dùng.
  * @route           POST /api/orders
@@ -26,7 +35,8 @@ const createOrder = async (request, response) => {
             dia_chi_giao_hang,
             phuong_thuc_thanh_toan,
             ghi_chu_khach_hang,
-            ma_khuyen_mai
+            ma_khuyen_mai,
+            phi_van_chuyen
         } = request.body;
 
         // Tìm giỏ hàng của người dùng
@@ -89,7 +99,7 @@ const createOrder = async (request, response) => {
 
             // Tính toán số tiền được giảm
             let subtotalForDiscount = tong_tien_hang;
-            // (Trong tương lai có thể thêm logic tính subtotal cho từng loại sản phẩm/danh mục ở đây)
+            
             
             if (promotion.loai_giam_gia === 'percentage') {
                 let calculatedDiscount = (subtotalForDiscount * parseFloat(promotion.gia_tri_giam)) / 100;
@@ -106,8 +116,8 @@ const createOrder = async (request, response) => {
         }
         
         // === BƯỚC 4: TÍNH TOÁN GIÁ TRỊ CUỐI CÙNG VÀ TẠO ĐƠN HÀNG ===
-        const phi_van_chuyen = 30000;
-        const tong_thanh_toan = tong_tien_hang - discountAmount + phi_van_chuyen;
+        
+        const tong_thanh_toan = tong_tien_hang - discountAmount + parseFloat(phi_van_chuyen);
         
         const newOrder = await db.Order.create({
             user_id: userId,
@@ -118,7 +128,7 @@ const createOrder = async (request, response) => {
             phuong_thuc_thanh_toan,
             trang_thai_don_hang:  phuong_thuc_thanh_toan === 'momo' ? 'pending_payment' : 'pending',
             tong_tien_hang,
-            phi_van_chuyen,
+            phi_van_chuyen: parseFloat(phi_van_chuyen),
             so_tien_giam_gia: discountAmount,
             ma_khuyen_mai_da_ap_dung: promotion ? promotion.ma_khuyen_mai : null,
             tong_thanh_toan,
@@ -148,13 +158,12 @@ const createOrder = async (request, response) => {
         if (phuong_thuc_thanh_toan === 'momo') {
             const redirectUrl = `${process.env.CLIENT_URL}/my-orders/${newOrder.id}`; // Chuyển về trang chi tiết đơn hàng
             const ipnUrl = `${process.env.SERVER_URL}/api/orders/momo-ipn`;
-            
+
+            const momoOrderId = `BZ111${newOrder.id}_${Date.now()}`;
+            const momoOrderInfo = `Thanh toan cho don hang BZ111${newOrder.id}`;
+
             const momoResponse = await createMomoPayment({
-                orderId: `BOOKSTORE_${newOrder.id}_${new Date().getTime()}`, // Tạo mã đơn hàng duy nhất cho MoMo
-                amount: tong_thanh_toan,
-                orderInfo: `Thanh toan cho don hang #${newOrder.id}`,
-                redirectUrl,
-                ipnUrl
+                orderId: momoOrderId, amount: tong_thanh_toan, orderInfo: momoOrderInfo, redirectUrl, ipnUrl
             });
 
             if (momoResponse && momoResponse.payUrl) {
@@ -167,7 +176,12 @@ const createOrder = async (request, response) => {
         } else { // Xử lý cho COD
             await db.CartItem.destroy({ where: { cart_id: cart.id }, transaction: t });
             await t.commit();
-            sendOrderConfirmationEmail(newOrder.email_nguoi_nhan, newOrder.toJSON());
+            const orderDataForEmail = {
+                ...newOrder.toJSON(),
+                ma_don_hang_hien_thi: `BZ111${newOrder.id}`
+            };
+            sendOrderConfirmationEmail(orderDataForEmail.email_nguoi_nhan, orderDataForEmail);
+            
             return response.status(201).json(newOrder);
         }
 
@@ -193,12 +207,12 @@ const handleMomoIPN = async (request, response) => {
     // }
 
     const { orderId, message, resultCode } = request.body;
-    
+    const originalOrderIdString = orderId.split('_')[0].replace('BZ111', '');
     // Lấy ID đơn hàng gốc của bạn từ chuỗi orderId của MoMo
     const originalOrderId = orderId.split('_')[1];
 
     try {
-        if (resultCode === 0) { // Thanh toán thành công
+         if (resultCode === 0 && originalOrderId) { // Thanh toán thành công
             const order = await db.Order.findByPk(originalOrderId);
             if (order) {
                 order.trang_thai_don_hang = 'pending'; // Chuyển sang trạng thái "chờ xác nhận"
@@ -206,7 +220,8 @@ const handleMomoIPN = async (request, response) => {
                 await order.save();
                 
                 // Gửi email xác nhận
-                sendOrderConfirmationEmail(order.email_nguoi_nhan, order.toJSON());
+                const orderDataForEmail = { ...order.toJSON(), ma_don_hang_hien_thi: `BZ111${order.id}` };
+                sendOrderConfirmationEmail(order.email_nguoi_nhan, orderDataForEmail);
             }
         } else { // Thanh toán thất bại
             // (Tùy chọn) Có thể cập nhật trạng thái đơn hàng thành "payment_failed"
@@ -229,10 +244,32 @@ const handleMomoIPN = async (request, response) => {
  */
 const getMyOrders = async (request, response) => {
     try {
+        
+        const { status = '', keyword = '' } = request.query;
+        
+        const whereCondition = {
+            user_id: request.user.id
+        };
+
+        if (status) {
+            whereCondition.trang_thai_don_hang = status;
+        }
+
+        // <<-- THÊM MỚI: Thêm điều kiện tìm kiếm theo mã đơn hàng (ID) -->>
+        if (keyword) {
+        const numericId = getNumericOrderId(keyword);
+        if (numericId !== null) {
+            whereCondition.id = numericId;
+        } else {
+            return response.status(200).json([]);
+        }
+    }
+
         const orders = await db.Order.findAll({
-            where: { user_id: request.user.id },
+            where: whereCondition,
             order: [['createdAt', 'DESC']]
         });
+
         response.status(200).json(orders);
     } catch (error) {
         console.error("Lỗi khi lấy danh sách đơn hàng của tôi:", error);
@@ -247,16 +284,25 @@ const getMyOrders = async (request, response) => {
  */
 const getOrderById = async (req, res) => {
     try {
-        const orderId = req.params.id;
+        const orderIdParam = req.params.id; 
+        let numericId;
+
+        // Thay thế logic cũ bằng hàm helper nhất quán
+        numericId = getNumericOrderId(orderIdParam);
         
-        const order = await db.Order.findByPk(orderId, {
+        // Nếu không phải mã BZ111xxxx, thử parse như một số bình thường (cho link của admin)
+        if (numericId === null) {
+            numericId = parseInt(orderIdParam, 10);
+        }
+
+        if (isNaN(numericId)) {
+            return res.status(400).json({ message: 'Mã đơn hàng không hợp lệ.' });
+        }
+        
+        const order = await db.Order.findByPk(numericId, {
             include: [
-                { model: db.User, as: 'user', attributes: ['ho_ten', 'email'] },
-                {
-                    model: db.OrderItem,
-                    as: 'orderItems',
-                    include: { model: db.Product, as: 'product', attributes: ['ten_sach', 'img'] }
-                }
+                { model: db.User, as: 'user' },
+                { model: db.OrderItem, as: 'orderItems', include: { model: db.Product, as: 'product' } }
             ]
         });
 
@@ -267,11 +313,11 @@ const getOrderById = async (req, res) => {
         if (req.user.role.ten_quyen === 'admin' || order.user_id === req.user.id) {
             return res.status(200).json(order);
         } else {
-            return res.status(403).json({ message: 'Bạn không có quyền truy cập vào đơn hàng này.' });
+            return res.status(403).json({ message: 'Bạn không có quyền truy cập.' });
         }
     } catch (error) {
         console.error("Lỗi khi lấy chi tiết đơn hàng:", error);
-        res.status(500).json({ message: 'Lỗi server.', error: error.message });
+        res.status(500).json({ message: 'Lỗi server.' });
     }
 };
 
@@ -327,7 +373,7 @@ const updateOrderStatus = async (req, res) => {
 };
 
 /**
- * @description     Admin: Lấy tất cả các đơn hàng trong hệ thống (có phân trang và lọc)
+ * @description     Admin: Lấy tất cả các đơn hàng trong hệ thống 
  * @route           GET /api/orders
  * @access          Private/Admin
  */
@@ -340,12 +386,19 @@ const getAllOrders = async (req, res) => {
         if (status) {
             whereCondition.trang_thai_don_hang = status;
         }
-        if (keyword) {
-            whereCondition[Op.or] = [
-                db.sequelize.where(db.sequelize.cast(db.sequelize.col('Order.id'), 'varchar'), { [Op.iLike]: `%${keyword}%` }),
+          if (keyword) {
+            const numericId = getNumericOrderId(keyword);
+            const searchConditions = [
                 { ten_nguoi_nhan: { [Op.iLike]: `%${keyword}%` } },
                 { email_nguoi_nhan: { [Op.iLike]: `%${keyword}%` } }
             ];
+            
+            // Nếu keyword sau khi xử lý là số, thêm điều kiện tìm theo ID
+           if (numericId !== null) {
+                searchConditions.push({ id: numericId });
+            }
+            
+            whereCondition[Op.or] = searchConditions;
         }
 
         const { count, rows } = await db.Order.findAndCountAll({
@@ -366,6 +419,28 @@ const getAllOrders = async (req, res) => {
         res.status(500).json({ message: 'Lỗi server khi lấy danh sách đơn hàng.' });
     }
 };
+/**
+ * @description     Tính toán và trả về phí vận chuyển dựa trên địa chỉ.
+ * @route           POST /api/orders/calculate-shipping
+ * @access          Public
+ */
+const getShippingFee = (request, response) => {
+    try {
+        const { province, district } = request.body;
+        
+        if (!province) {
+            return response.status(400).json({ message: "Vui lòng chọn Tỉnh/Thành phố." });
+        }
+
+        const fee = calculateShippingFee(province, district);
+        
+        response.status(200).json({ shippingFee: fee });
+
+    } catch (error) {
+        console.error("Lỗi khi tính phí vận chuyển:", error);
+        response.status(500).json({ message: "Lỗi server khi tính phí vận chuyển." });
+    }
+};
 
 module.exports = { 
     createOrder,
@@ -373,5 +448,6 @@ module.exports = {
     getMyOrders, 
     getOrderById, 
     updateOrderStatus,
-    getAllOrders
+    getAllOrders,
+    getShippingFee
 };

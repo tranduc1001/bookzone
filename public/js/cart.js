@@ -1,5 +1,4 @@
-// Bắt đầu thực thi code sau khi toàn bộ cây DOM của trang đã được tải xong.
-// Điều này đảm bảo tất cả các element HTML đã sẵn sàng để JavaScript thao tác.
+
 document.addEventListener('DOMContentLoaded', () => {
 
     // Lấy token xác thực từ localStorage.
